@@ -8,7 +8,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 
 
-abstract class ScenarioTest<T>(testContext: T) {
+abstract class ScenarioTest<T>(testContext: T, val steps: Array<String>) {
 
     private val given = spyk(Given(testContext))
     private val `when` = spyk(When(testContext))
@@ -16,36 +16,40 @@ abstract class ScenarioTest<T>(testContext: T) {
 
 
     fun given(): Given<T> {
-        return given
+        return given.given()
     }
 
     fun `when`(): When<T> {
-        return `when`
+        return `when`.`when`()
     }
 
     fun then(): Then<T> {
-        return then
+        return then.then()
     }
 
     @BeforeEach
     fun before() {
-        mockkStatic("org.github.kgiven.fruit.GivenFruitKt", "org.github.kgiven.fruit.ThenFruitKt")
+        steps.forEach {
+            mockkStatic(it)
+        }
     }
 
     @AfterEach
     fun after() {
 
+        val methodsWithLineBreak = arrayOf("given", "when", "then")
 
         (MockKGateway.implementation().mockFactory as AbstractMockFactory).gatewayAccess.stubRepository
                 .allStubs.flatMap { it.allRecordedCalls() }
-                .filter { !(it.method.name == "getContext") }
+                .filter { it.method.name != "getContext" }
                 .sortedBy { it.timestamp }
                 .map {
-                    println(it.timestamp)
-                    println(it.method.name)
+                    if (methodsWithLineBreak.contains(it.method.name)) {
+                        println()
+                    }
+                    print(it.method.name)
+                    print(" ")
                 }
-
-
     }
 
 
